@@ -1,8 +1,5 @@
 # weak matching pursuit
 
-# NOT COMPLETED YET.
-
-import os
 import numpy as np
 
 # sample matrices A and b
@@ -41,26 +38,25 @@ for k in range(1, num_iteration+1):
     # Finding minimum error. This part is different from OMP.
     for j in range(A.shape[1]):  # sweep over all the columns of A.
 
-        pi = np.dot(A[:,j],r_km1)
+        pi = np.abs(np.dot(A[:,j],r_km1))
 
         if pi >= t * np.linalg.norm(r_km1):
             column_idx[k - 1] = j
+            break
 
     xk = xkm1
-
-
-    As_temp[:, column_idx[k-1]] = A[:, column_idx[k-1]]
-    As = As_temp[:, ~np.all(As_temp == 0, axis=0)]
+    xk[column_idx[k - 1],0] = xk[column_idx[k - 1],0]+ np.dot(A[:,column_idx[k - 1]],r_km1)
 
     print("Minimum error is found at {}-th column".format(column_idx[k-1]+1))
 
     # residual vector
-    r_k = b - np.matmul(As, xk)  # b - A x = b - As xk
+    r_k = b - np.matmul(A, xk)  # b - A x
 
     print("Residual:\n{}".format(r_k))
-    # 1st iteration: [[0.72570314], [0.10862391], [-0.61394818]]
-    # 2nd iteration: [[1.65905921e-06], [1.29754484e-05], [4.25644903e-06]]
+
 
     print("L2 norm of r_k = {}".format(np.linalg.norm(r_k)))
 
-    r_km1 = r_k # update for next
+    # update for next
+    r_km1 = r_k
+    xkm1 = xk
