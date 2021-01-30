@@ -1,8 +1,8 @@
 # weak matching pursuit
 
-# NOT COMPLETED YET
+# NOT COMPLETED YET.
 
-
+import os
 import numpy as np
 
 # sample matrices A and b
