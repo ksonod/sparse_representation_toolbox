@@ -1,4 +1,5 @@
-# weak matching pursuit
+# thresholding
+# Michael Elad, Sparse and Redundant Representations, Chapter 3, page 45, 2010
 
 import numpy as np
 
@@ -8,7 +9,6 @@ A = np.array([[0.1817, 0.5394, -0.1197,  0.6404],
              [-0.7634, -0.8181, 0.9883, 0.7018]])
 
 b = np.array([[1.1862], [-0.1158], [-0.1093]])
-
 
 num_iteration = 4  # Number of iterations
 epsilon = 0.1 # If the L2 norm of the residual vector is smaller than this value, iteration is ended.
@@ -22,7 +22,7 @@ column_idx = np.argsort(-np.abs(np.matmul(A.T, b)),axis = 0).flatten() # Sort in
 # Start iteration
 for k in range(1, num_iteration+1):
 
-    print("\--iteration {}--".format(k))
+    print("\n--iteration {}--".format(k))
 
     xk = np.matmul(A[:,np.sort(column_idx[:k])].T, b)
 

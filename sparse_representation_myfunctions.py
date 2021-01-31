@@ -12,11 +12,11 @@ def mutual_coherence(A):
     mu_max = 0
 
     for i in range(w):
-        for j in range(i+1,w):
-            mu = np.dot(A[:,i],A[:,j])/np.sqrt(np.dot(A[:,i],A[:,i]))/np.sqrt(np.dot(A[:,j],A[:,j]))
+        for j in range(i + 1, w):
+            mu = np.dot(A[:, i], A[:, j])/np.sqrt(np.dot(A[:, i], A[:, i]))/np.sqrt(np.dot(A[:, j], A[:, j]))
 
             if mu > mu_max:
-                mu_max=mu
+                mu_max = mu
     return mu_max
 
 

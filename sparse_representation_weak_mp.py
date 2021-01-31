@@ -1,4 +1,5 @@
 # weak matching pursuit
+# Michael Elad, Sparse and Redundant Representations, Chapter 3, page 39-41, 2010
 
 import numpy as np
 
@@ -14,8 +15,7 @@ t = 0.5  # parameter. The larger it is, the faster (and the less accurate) the a
 x_0 = np.zeros((A.shape[1], 1))  # 4 x 1 zeros. Initial solution
 xkm1 = x_0
 r_0 = b - np.matmul(A, x_0)  # 3 x 1. Initial residual
-column_idx = np.zeros(A.shape[1]).astype("int8")-1  # 1 x 4
-x = np.zeros((4, 1))
+column_idx = []
 r_km1 = r_0  # r_{k-1}
 k = 1
 num_iteration = 2  # Number of iterations
@@ -35,13 +35,13 @@ for k in range(1, num_iteration+1):
         pi = np.abs(np.dot(A[:, j], r_km1))
 
         if pi >= t * np.linalg.norm(r_km1):
-            column_idx[k - 1] = j
+            column_idx.append(j)
             break
 
     xk = xkm1
-    xk[column_idx[k - 1], 0] = xk[column_idx[k - 1], 0] + np.dot(A[:, column_idx[k - 1]], r_km1)
+    xk[column_idx, 0] = xk[column_idx, 0] + np.matmul(A[:, column_idx].T, r_km1).flatten()
 
-    print("{}-th column is chosen".format(column_idx[k-1]+1))
+    print("Column {} is chosen".format(column_idx[-1] + 1))
     # First iteration: 2nd column
     # Second iteration: 4th column
 
