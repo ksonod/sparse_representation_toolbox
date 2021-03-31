@@ -1,11 +1,7 @@
 import numpy as np
 
 class MutualCoherence:
-    def __init__(self, matrix):
-        self.A = matrix
-        self.h, self.w = matrix.shape
-
-    def compute_mutual_coherence(self):
+    def compute_mutual_coherence(self, A):
         '''
         Calculating mutual coherence
         reference:  M. Elad, Sparse and redundant representations, Eqs. (2.3) and (2.21)
@@ -14,21 +10,31 @@ class MutualCoherence:
         returns mu (mutual coherence)
         '''
 
+        h, w = A.shape
         mu_max = 0
 
-        for i in range(self.w):
-            for j in range(i + 1, self.w):
-                mu = np.dot(self.A[:, i], self.A[:, j])/np.sqrt(np.dot(self.A[:, i], self.A[:, i]))/np.sqrt(np.dot(self.A[:, j], self.A[:, j]))
+        for i in range(w):
+            for j in range(i + 1, w):
+                mu = np.dot(A[:, i], A[:, j])/np.sqrt(np.dot(A[:, i], A[:, i]))/np.sqrt(np.dot(A[:, j], A[:, j]))
 
                 if mu > mu_max:
                     mu_max = mu
         return mu_max
 
-    def mu_lower_bound(self):
-        return np.sqrt((self.w - self.h) / self.h / (self.w - 1))
+    def mu_lower_bound(self, A):
+        h, w = A.shape
+        return np.sqrt((w - h) / h / (w - 1))
 
 
 def babel_function(A):
+    """
+    Babel function mu_1(p)
+    reference:  M. Elad, Sparse and redundant representations, Eqs. (2.23) and (2.24)
+
+    input: A - numpy array
+    output: mu_1(p) - numpy array consisting of mu_1(1), mu_1(2), mu_1(3),...
+    """
+
     A_tilda = np.copy(A)
     A_tilda = A_tilda.astype(float)
 
@@ -36,9 +42,11 @@ def babel_function(A):
         l2_norm = np.sqrt(np.dot(A[:, j], A[:, j]))
         A_tilda[:, j] = A[:, j] / l2_norm
 
+    mutual_coherence = MutualCoherence()
+
     print("Mutual coherence should be the same for A and A_tilda.")
-    print("mutual coherence of A: {}".format(mutual_coherence(A)))
-    print("mutual coherence of A_tilda: {}".format(mutual_coherence(A_tilda)))
+    print("mutual coherence of A: {}".format(mutual_coherence.compute_mutual_coherence(A)))
+    print("mutual coherence of A_tilda: {}".format(mutual_coherence.compute_mutual_coherence(A_tilda)))
 
     # Gram matrix
     G = np.dot(A_tilda.T, A_tilda)
