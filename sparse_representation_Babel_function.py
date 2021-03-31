@@ -1,6 +1,6 @@
 # Section 2
 import numpy as np
-from sparse_representation_myfunctions import babel_function
+from sparse_toolbox.tools import babel_function
 
 A = np.array([[16,-2,15,13],[5,6,8,8],[9,4,11,12],[4,12,10,1]])
 

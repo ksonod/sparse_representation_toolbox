@@ -1,23 +1,31 @@
 import numpy as np
 
-def mutual_coherence(A):
-    '''
-    Calculating mutual coherence
-    A: matrix
+class MutualCoherence:
+    def __init__(self, matrix):
+        self.A = matrix
+        self.h, self.w = matrix.shape
 
-    returns mu (mutual coherence)
-    '''
+    def compute_mutual_coherence(self):
+        '''
+        Calculating mutual coherence
+        reference:  M. Elad, Sparse and redundant representations, Eqs. (2.3) and (2.21)
 
-    h, w = A.shape
-    mu_max = 0
+        A: matrix
+        returns mu (mutual coherence)
+        '''
 
-    for i in range(w):
-        for j in range(i + 1, w):
-            mu = np.dot(A[:, i], A[:, j])/np.sqrt(np.dot(A[:, i], A[:, i]))/np.sqrt(np.dot(A[:, j], A[:, j]))
+        mu_max = 0
 
-            if mu > mu_max:
-                mu_max = mu
-    return mu_max
+        for i in range(self.w):
+            for j in range(i + 1, self.w):
+                mu = np.dot(self.A[:, i], self.A[:, j])/np.sqrt(np.dot(self.A[:, i], self.A[:, i]))/np.sqrt(np.dot(self.A[:, j], self.A[:, j]))
+
+                if mu > mu_max:
+                    mu_max = mu
+        return mu_max
+
+    def mu_lower_bound(self):
+        return np.sqrt((self.w - self.h) / self.h / (self.w - 1))
 
 
 def babel_function(A):
