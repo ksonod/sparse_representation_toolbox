@@ -38,6 +38,7 @@ class GreedyAlgorithm:
                 print("L2 norm of r_k = {}\n".format(np.linalg.norm(rk)))
         return x
 
+
     def basis_pursuit_lp(self, A, b, tol):
         """
         Solving Basis Pursuit via linear programing
@@ -47,6 +48,9 @@ class GreedyAlgorithm:
         b: input vector. numpy array
         tol: tolerance. small positive number
         """
+
+        # Normalization
+        A = A / np.linalg.norm(A, axis=0)
 
         # Set the options to be used by the linprog solver
         opt = {"tol": tol, "disp": False}
