@@ -1,4 +1,3 @@
-# Section 2
 import numpy as np
 from sparse_toolbox.tools import babel_function
 
