@@ -7,7 +7,7 @@ class GreedyAlgorithm:
 
     def omp(self, A, b, k):
         """
-        omp solves the P0 problem via OMP
+        Solving the P0 problem via OMP
         min_x ||b - Ax||_2^2 s.t. ||x||_0 <= k
 
         A: input matrix. numpy array
@@ -37,7 +37,6 @@ class GreedyAlgorithm:
                 print("Residual:\n{}".format(rk))
                 print("L2 norm of r_k = {}\n".format(np.linalg.norm(rk)))
         return x
-
 
     def basis_pursuit_lp(self, A, b, tol):
         """
@@ -78,3 +77,24 @@ class GreedyAlgorithm:
         uv = opt.x.reshape(2, m).T
         x = uv[:, 0] - uv[:, 1]
         return x.reshape(-1, 1)
+
+    def thresholding(self, A, b, thr):
+        # Normalization
+        A_norm = A / np.linalg.norm(A, axis=0)
+
+        column_idx = np.argsort(-np.abs(np.matmul(A_norm.T, b)), axis=0).flatten() # Sort in descending order.
+
+        # initialization
+        x = np.zeros((A_norm.shape[1], 1))
+        r = np.copy(b)
+        k = 1
+
+        while np.dot(r.T, r) > thr:
+            As = A_norm[:, column_idx[:k]]
+            xk = np.matmul(np.linalg.pinv(As), b)
+            r = b - np.matmul(As, xk)
+            k = k + 1
+
+        x[column_idx[:k-1]] = xk
+
+        return x
