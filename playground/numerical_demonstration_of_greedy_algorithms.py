@@ -5,57 +5,48 @@ M. Elad, "Sparse and Redundant Representations: From Theory to Applications in S
 """
 
 import numpy as np
-from algorithm.pursuit import GreedyAlgorithm, PursuitAlgorithm
+from algorithm.pursuit import PursuitAlgorithmType, PursuitAlgorithm
 import matplotlib.pyplot as plt
 
-# Set the maximum number of non-zeros in the generated vector
-s_max = 10  # 15
 
-# Set the minimum and maximum entry values
-min_coeff_val = 1  # 1
-max_coeff_val = 2  # 3
-
-# Number of realizations
-num_realizations = 200  # 200
-
-# rendom seed
-base_seed = 0
-
-#  Create the dictionary
-# Create a random matrix A of size (n x m)
-n = 30  # 50
-m = 50  # 100
+# Create a random matrix A of size (n x m): dictionary
+n = 30
+m = 50
 A = np.random.randn(n, m)
 A_normalized = A / np.linalg.norm(A, axis=0)  # normalization
 
-# Nullify the entries in the estimated vector that are smaller than eps
-eps_coeff = 1e-4
-# Set the optimality tolerance of the linear programing solver
-tolerance = 1e-4
+# [-max_coeff_val, -min_coeff_val]OR[min_coeff_val, max_coeff_val]
+min_coeff_val = 1  # minimum value of a random true vector
+max_coeff_val = 2  # maximum value of a random true vector
 
-# Number of algorithms
-num_algo = 3
+num_iter = 200  # Number of iterations
+s_max = 10  # Maximum number of non-zero entries in the solution vector
+eps_coeff = 1e-4  # If the entries in the estimated vector are smaller than eps_coeff, we will neglect those entries.
+tolerance = 1e-4  # Tolerance for convergence
+num_algo = 4  # Number of algorithms
+base_seed = 0  # Random seed
+
+# getting the name of algorithms
+algo_name_list = []
+for i in range(num_algo):
+    algo_name_list.append(PursuitAlgorithmType(i).name)
 
 # Initialization
-L2_error = np.zeros((s_max, num_realizations, num_algo))
-support_error = np.zeros((s_max, num_realizations, num_algo))
+L2_error = np.zeros((s_max, num_iter, num_algo))
+support_error = np.zeros((s_max, num_iter, num_algo))
 
 
 # Loop over the sparsity level
 for s in range(1, s_max+1):
-    print("{}/{}".format(s, s_max))
+    print("Progress: {}/{}".format(s, s_max))  # Showing progress
 
-    # Use the same random seed in order to reproduce the results if needed
-    np.random.seed(s + base_seed)
+    np.random.seed(s + base_seed)  # Random seed
 
-    # Loop over the number of realizations
-    for experiment in range(num_realizations):
-        # In this part we will generate a test signal b = A_normalized @ x by
-        # drawing at random a sparse vector x with s non-zeros entries in
-        # true_supp locations with values in the range of [min_coeff_val, max_coeff_val]
+    # Start experiment
+    for experiment in range(num_iter):
         x = np.zeros((m, 1))
 
-        # Random true_supp vector. This determines indices which give non-zero entries in x
+        # Random true_supp vector. This determines which indices give non-zero entries in x
         true_supp = np.random.permutation(m)[:s]
 
         # random non-zero entries
@@ -65,9 +56,9 @@ for s in range(1, s_max+1):
         # signal b
         b = np.matmul(A_normalized, x)
 
-        # Start pursuit algorithm.
+        # Pursuit algorithm.
         for i in range(num_algo):
-            greedy_algo = GreedyAlgorithm(pursuit_algorithm=PursuitAlgorithm(i))
+            greedy_algo = PursuitAlgorithm(pursuit_algorithm=PursuitAlgorithmType(i))
             x_pursuit = greedy_algo(A_normalized, b, tolerance)
             x_pursuit[np.abs(x_pursuit) < eps_coeff] = 0
 
@@ -81,29 +72,31 @@ for s in range(1, s_max+1):
             # (max{|S_pred|, |S_correct|} - |S_pred cap S_correct|) / max{|S_correct|, |S_pred|}
             support_error[s-1, experiment, i] = 1 - len(set(true_supp).intersection(set(estimated_supp))) / np.max([len(true_supp), len(estimated_supp)])
 
-# Display the results
+# Data visualization
 plt.rcParams.update({'font.size': 14})
-# Plot the average relative L2 error, obtained by the OMP and BP versus the cardinality
+# Average relative L2 error vs cardinality
 plt.figure(figsize=(14, 5))
 plt.subplot(121)
 plt.plot(np.arange(s_max) + 1, np.mean(L2_error[:s_max, :, 0], axis=1), color='red', linestyle='-', marker='o')
 plt.plot(np.arange(s_max) + 1, np.mean(L2_error[:s_max, :, 1], axis=1), color='magenta', linestyle='-', marker='o')
 plt.plot(np.arange(s_max) + 1, np.mean(L2_error[:s_max, :, 2], axis=1), color='green', linestyle='-', marker='o')
+plt.plot(np.arange(s_max) + 1, np.mean(L2_error[:s_max, :, 3], axis=1), color='blue', linestyle='-', marker='o')
 plt.xlabel('Cardinality of the true solution')
 plt.ylabel('Average and Relative L2-Error')
 plt.xlim([0, s_max])
 plt.ylim([-0.01, 1.01])
-plt.legend(['OMP', 'Thr', 'BP by LP'], loc='upper left')
+plt.legend(algo_name_list, loc='upper left')
 
-# Plot the average support recovery score, obtained by the OMP and BP versus the cardinality
+# Average support recovery score vs cardinality
 plt.subplot(122)
 plt.plot(np.arange(s_max) + 1, np.mean(support_error[:s_max, :, 0], axis=1), color='red', linestyle='-', marker='o')
 plt.plot(np.arange(s_max) + 1, np.mean(support_error[:s_max, :, 1], axis=1), color='magenta', linestyle='-', marker='o')
 plt.plot(np.arange(s_max) + 1, np.mean(support_error[:s_max, :, 2], axis=1), color='green', linestyle='-', marker='o')
+plt.plot(np.arange(s_max) + 1, np.mean(support_error[:s_max, :, 3], axis=1), color='blue', linestyle='-', marker='o')
 plt.xlabel('Cardinality of the true solution')
 plt.ylabel('Probability of Error in Support')
 plt.xlim([0, s_max])
 plt.ylim([-0.01, 1.01])
-plt.legend(['OMP', 'Thr','BP by LP'], loc='upper left')
+plt.legend(algo_name_list, loc='upper left')
 plt.show()
 

@@ -2,25 +2,29 @@ import numpy as np
 from scipy.optimize import linprog
 from enum import Enum
 
-class PursuitAlgorithm(Enum):
-    omp = 0
-    thresholding = 1
-    basis_pursuit_lp = 2
+class PursuitAlgorithmType(Enum):
+    omp = 0  # orthogonal matching pursuit
+    thresholding = 1  # thresholding
+    basis_pursuit_lp = 2  # basis pursuit with linear programming
+    ls_omp = 3  # least-square orthogonal matching pursuit
 
-class GreedyAlgorithm:
-    def __init__(self, show_calc=False, pursuit_algorithm=PursuitAlgorithm.omp):
+class PursuitAlgorithm:
+    def __init__(self, show_calc=False, pursuit_algorithm=PursuitAlgorithmType.omp):
         self.show_calc = show_calc  # show intermediate calculation process
         self.pursuit_algorithm = pursuit_algorithm
 
     def __call__(self, A, b, t):
-        if self.pursuit_algorithm == PursuitAlgorithm.omp:
+        if self.pursuit_algorithm == PursuitAlgorithmType.omp:
             x = self.omp(A, b, t)
 
-        elif self.pursuit_algorithm == PursuitAlgorithm.thresholding:
+        elif self.pursuit_algorithm == PursuitAlgorithmType.thresholding:
             x = self.thresholding(A, b, t)
 
-        elif self.pursuit_algorithm == PursuitAlgorithm.basis_pursuit_lp:
+        elif self.pursuit_algorithm == PursuitAlgorithmType.basis_pursuit_lp:
             x = self.basis_pursuit_lp(A, b, t)
+
+        elif self.pursuit_algorithm == PursuitAlgorithmType.ls_omp:
+            x = self.ls_omp(A, b, t)
 
         return x
 
@@ -109,7 +113,10 @@ class GreedyAlgorithm:
         return x.reshape(-1, 1)
 
     def thresholding(self, A, b, thr):
-        column_idx = np.argsort(-np.abs(np.matmul(A.T, b)), axis=0).flatten() # Sort in descending order.
+        """
+        Threshodling algorithm.
+        """
+        column_idx = np.argsort(-np.abs(np.matmul(A.T, b)), axis=0).flatten()  # sort in descending order.
 
         # initialization
         x = np.zeros((A.shape[1], 1))
@@ -123,5 +130,34 @@ class GreedyAlgorithm:
             k = k + 1
 
         x[column_idx[:k-1]] = xk
+
+        return x
+
+    def ls_omp(self, A, b, tol):
+        """
+        Least-square orthogonal matching pursuit
+        """
+
+        m = A.shape[1]  # number of columns
+
+        # initialization
+        x = np.zeros((m, 1))
+        r = np.copy(b)
+        column_idx = []
+
+        while np.dot(r.T, r) > tol:
+            residual_inner_prod = np.zeros((m, 1))  # initialization
+
+            for i in range(m):
+                column_idx_temp = column_idx + [i]
+                r_temp = b - A[:, column_idx_temp] @ np.linalg.pinv(A[:, column_idx_temp]) @ b
+                residual_inner_prod[i] = np.dot(r_temp.T, r_temp)
+
+            column_idx.append(np.argmin(residual_inner_prod))
+            column_idx.sort()
+
+            r = b - A[:, column_idx] @ np.linalg.pinv(A[:, column_idx]) @ b  # residual
+
+        x[column_idx] = np.linalg.pinv(A[:, column_idx]) @ b
 
         return x
