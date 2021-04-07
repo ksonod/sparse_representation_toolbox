@@ -1,5 +1,11 @@
+"""
+M. Elad, "Sparse and Redundant Representations: From Theory to Applications in Signal and Image Processing,"
+ Springer, p47, (2010)
+ Figs. 3.5 and 3.6
+"""
+
 import numpy as np
-from algorithm.pursuit import GreedyAlgorithm
+from algorithm.pursuit import GreedyAlgorithm, PursuitAlgorithm
 import matplotlib.pyplot as plt
 
 # Set the maximum number of non-zeros in the generated vector
@@ -34,7 +40,6 @@ num_algo = 3
 L2_error = np.zeros((s_max, num_realizations, num_algo))
 support_error = np.zeros((s_max, num_realizations, num_algo))
 
-greedy_algorithm = GreedyAlgorithm()
 
 # Loop over the sparsity level
 for s in range(1, s_max+1):
@@ -60,49 +65,23 @@ for s in range(1, s_max+1):
         # signal b
         b = np.matmul(A_normalized, x)
 
+        # Start pursuit algorithm.
+        for i in range(num_algo):
+            greedy_algo = GreedyAlgorithm(pursuit_algorithm=PursuitAlgorithm(i))
+            if PursuitAlgorithm(i) == PursuitAlgorithm.omp:
+                x_pursuit = greedy_algo(A, b, s)
+            else:
+                x_pursuit = greedy_algo(A, b, tol_lp)
+                x_pursuit[np.abs(x_pursuit) < eps_coeff] = 0
+            # Compute the relative L2 error
+            L2_error[s - 1, experiment, i] = np.min([np.linalg.norm(x_pursuit - x) ** 2 / np.linalg.norm(x) ** 2, 1])
 
-        # OMP
-        x_omp = greedy_algorithm.omp(A_normalized, b, s)
-        x_omp[np.abs(x_omp) < eps_coeff] = 0
+            # Get the indices of the estimated support
+            estimated_supp = np.nonzero(np.abs(x_pursuit) > eps_coeff)[0]
 
-        # Compute the relative L2 error
-        L2_error[s-1, experiment, 0] = np.min([np.linalg.norm(x_omp - x) ** 2 / np.linalg.norm(x) ** 2, 1])
-
-        # Get the indices of the estimated support
-        estimated_supp = np.nonzero(np.abs(x_omp) > eps_coeff)[0]
-
-        # Compute the support recovery error
-        # (max{|S_pred|, |S_correct|} - |S_pred cap S_correct|) / max{|S_correct|, |S_pred|}
-        support_error[s-1, experiment, 0] = 1 - len(set(true_supp).intersection(set(estimated_supp))) / np.max([len(true_supp), len(estimated_supp)])
-
-
-        # Basis pursuit via linear programming
-        x_lp = greedy_algorithm.basis_pursuit_lp(A_normalized, b, tol_lp)
-        x_lp[np.abs(x_lp) < eps_coeff] = 0
-
-        # Compute the relative L2 error
-        L2_error[s-1, experiment, 1] = np.linalg.norm(x_lp - x) ** 2 / np.linalg.norm(x) ** 2
-
-        # Get the indices of the estimated support
-        estimated_supp = np.nonzero(np.abs(x_lp) > eps_coeff)[0]
-
-        # Compute the support recovery score
-        support_error[s-1, experiment, 1] = 1 - len(set(true_supp).intersection(set(estimated_supp))) / np.max([len(true_supp), len(estimated_supp)])
-
-
-        # Thresholding Algorithm
-        x_th = greedy_algorithm.thresholding(A_normalized, b, tol_lp)
-        x_th[np.abs(x_th) < eps_coeff] = 0
-
-        # Compute the relative L2 error
-        L2_error[s - 1, experiment, 2] = np.min([np.linalg.norm(x_th - x) ** 2 / np.linalg.norm(x) ** 2, 1])
-
-        # Get the indices of the estimated support
-        estimated_supp = np.nonzero(np.abs(x_th) > eps_coeff)[0]
-
-        # Compute the support recovery score
-        support_error[s - 1, experiment, 2] = 1 - len(set(true_supp).intersection(set(estimated_supp))) / np.max(
-            [len(true_supp), len(estimated_supp)])
+            # Compute the support recovery error
+            # (max{|S_pred|, |S_correct|} - |S_pred cap S_correct|) / max{|S_correct|, |S_pred|}
+            support_error[s-1, experiment, i] = 1 - len(set(true_supp).intersection(set(estimated_supp))) / np.max([len(true_supp), len(estimated_supp)])
 
 # Display the results
 plt.rcParams.update({'font.size': 14})
@@ -110,22 +89,22 @@ plt.rcParams.update({'font.size': 14})
 plt.figure(figsize=(14, 5))
 plt.subplot(121)
 plt.plot(np.arange(s_max) + 1, np.mean(L2_error[:s_max, :, 0], axis=1), color='red', linestyle='-', marker='o')
-plt.plot(np.arange(s_max) + 1, np.mean(L2_error[:s_max, :, 1], axis=1), color='green', linestyle='-', marker='o')
-plt.plot(np.arange(s_max) + 1, np.mean(L2_error[:s_max, :, 2], axis=1), color='magenta', linestyle='-', marker='o')
+plt.plot(np.arange(s_max) + 1, np.mean(L2_error[:s_max, :, 1], axis=1), color='magenta', linestyle='-', marker='o')
+plt.plot(np.arange(s_max) + 1, np.mean(L2_error[:s_max, :, 2], axis=1), color='green', linestyle='-', marker='o')
 plt.xlabel('Cardinality of the true solution')
 plt.ylabel('Average and Relative L2-Error')
 plt.xlim([0, s_max])
 plt.ylim([-0.01, 1.01])
-plt.legend(['OMP', 'BP by LP', 'Thr'], loc='upper left')
+plt.legend(['OMP', 'Thr', 'BP by LP'], loc='upper left')
 
 # Plot the average support recovery score, obtained by the OMP and BP versus the cardinality
 plt.subplot(122)
 plt.plot(np.arange(s_max) + 1, np.mean(support_error[:s_max, :, 0], axis=1), color='red', linestyle='-', marker='o')
-plt.plot(np.arange(s_max) + 1, np.mean(support_error[:s_max, :, 1], axis=1), color='green', linestyle='-', marker='o')
-plt.plot(np.arange(s_max) + 1, np.mean(support_error[:s_max, :, 2], axis=1), color='magenta', linestyle='-', marker='o')
+plt.plot(np.arange(s_max) + 1, np.mean(support_error[:s_max, :, 1], axis=1), color='magenta', linestyle='-', marker='o')
+plt.plot(np.arange(s_max) + 1, np.mean(support_error[:s_max, :, 2], axis=1), color='green', linestyle='-', marker='o')
 plt.xlabel('Cardinality of the true solution')
 plt.ylabel('Probability of Error in Support')
 plt.xlim([0, s_max])
 plt.ylim([-0.01, 1.01])
-plt.legend(['OMP', 'BP by LP', 'Thr'], loc='upper left')
+plt.legend(['OMP', 'Thr','BP by LP'], loc='upper left')
 plt.show()
