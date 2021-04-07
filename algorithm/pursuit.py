@@ -26,35 +26,49 @@ class GreedyAlgorithm:
 
     def omp(self, A, b, k):
         """
-        Solving the P0 problem via OMP
-        min_x ||b - Ax||_2^2 s.t. ||x||_0 <= k
+        Solving the P0 problem via OMP. Concretely,
+        min_x ||b - Ax||_2^2 s.t. ||x||_0 <= k,
+        where k is integer,
+        or
+        min_x ||x||_0 s.t. ||y - Ax||_2^2 <= tol,
+        where tol is small non-integer.
 
-        A: input matrix. numpy array
+
+        A: input matrix. numpy array. Each column is normalized.
         b: input vector. numpy array
         k: number of non-zero elements. integer
 
         See also scikit-learn: https://scikit-learn.org/stable/modules/linear_model.html#omp
         """
-        # Normalization
-        A = A / np.linalg.norm(A, axis=0)
-
         # Initialization
         x = np.zeros((A.shape[1], 1))
-        rk = b - np.matmul(A, x)
+        r = np.copy(b)
         column_idx = []
 
-        for i in range(k):
-            idx = np.argmax(np.abs(np.matmul(A.T, rk)))  # find a column with the maximum inner product.
-            column_idx.append(idx)
-            As = A[:, column_idx]
-            xk = np.matmul(np.linalg.inv(np.matmul(As.T, As)), As.T)
-            x[column_idx] = np.matmul(xk, b).reshape(-1, 1)
-            rk = b - np.matmul(A, x)
+        # k is the number of non-zero coefficients
+        if isinstance(k, int):
+            for i in range(k):
+                idx = np.argmax(np.abs(np.matmul(A.T, r)))  # find a column with the maximum inner product.
+                column_idx.append(idx)
+                column_idx.sort()
+                As = A[:, column_idx]
+                r = b - As @ np.linalg.pinv(As) @ b
 
-            if self.show_calc:
-                print("-Iteration {}---".format(i+1))
-                print("Residual:\n{}".format(rk))
-                print("L2 norm of r_k = {}\n".format(np.linalg.norm(rk)))
+                if self.show_calc:
+                    print("-Iteration {}---".format(i+1))
+                    print("Residual:\n{}".format(r))
+                    print("L2 norm of r_k = {}\n".format(np.linalg.norm(r)))
+
+        # k is error tolerance
+        else:
+            while np.dot(r.T, r) > k:
+                idx = np.argmax(np.abs(np.matmul(A.T, r)))  # find a column with the maximum inner product.
+                column_idx.append(idx)
+                column_idx.sort()
+                As = A[:, column_idx]
+                r = b - As @ np.linalg.pinv(As) @ b
+
+        x[column_idx] = np.linalg.pinv(As) @ b
         return x
 
     def basis_pursuit_lp(self, A, b, tol):
@@ -62,13 +76,10 @@ class GreedyAlgorithm:
         Solving Basis Pursuit via linear programing
         min_x || x ||_1 s.t. b = Ax
 
-        A: input matrix. numpy array
+        A: input matrix. numpy array. Each column is normalized.
         b: input vector. numpy array
         tol: tolerance. small positive number
         """
-
-        # Normalization
-        A = A / np.linalg.norm(A, axis=0)
 
         # Set the options to be used by the linprog solver
         opt = {"tol": tol, "disp": False}
@@ -98,18 +109,15 @@ class GreedyAlgorithm:
         return x.reshape(-1, 1)
 
     def thresholding(self, A, b, thr):
-        # Normalization
-        A_norm = A / np.linalg.norm(A, axis=0)
-
-        column_idx = np.argsort(-np.abs(np.matmul(A_norm.T, b)), axis=0).flatten() # Sort in descending order.
+        column_idx = np.argsort(-np.abs(np.matmul(A.T, b)), axis=0).flatten() # Sort in descending order.
 
         # initialization
-        x = np.zeros((A_norm.shape[1], 1))
+        x = np.zeros((A.shape[1], 1))
         r = np.copy(b)
         k = 1
 
         while np.dot(r.T, r) > thr:
-            As = A_norm[:, column_idx[:k]]
+            As = A[:, column_idx[:k]]
             xk = np.matmul(np.linalg.pinv(As), b)
             r = b - np.matmul(As, xk)
             k = k + 1

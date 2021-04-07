@@ -16,12 +16,12 @@ x = greedy_algo.omp(A, b, 2)
 """
 Below are expected output
 Residual rk
-1st iteration: [[0.72570314], [0.10862391], [-0.61394818]]
+1st iteration: [[0.72572239], [0.10861452], [-0.61392708]]
 2nd iteration: [[1.65905921e-06], [1.29754484e-05], [4.25644903e-06]]
 
 L2 Norm of rk
-1st iteration: 0.9567531400438528
-2nd iteration: 1.3756165787494833e-05
+1st iteration: 0.9567531400438529
+2nd iteration: 1.3756165787529186e-05
 """
 
 print("Non-zero elements:", np.nonzero(x)[0])
@@ -31,5 +31,5 @@ print("Non-zero elements:", np.nonzero(x)[0])
 omp = OrthogonalMatchingPursuit(n_nonzero_coefs=2)
 x_sk = omp.fit(A, b).coef_.reshape(-1, 1)
 
-# This number should be very small.
+# This number should be very small.  1.2725320679923535e-10
 print("square sum of difference between my omp and scikit-learn: {}".format(np.sum((x - x_sk)**2)))

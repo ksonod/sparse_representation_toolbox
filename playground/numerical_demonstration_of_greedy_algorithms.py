@@ -31,7 +31,7 @@ A_normalized = A / np.linalg.norm(A, axis=0)  # normalization
 # Nullify the entries in the estimated vector that are smaller than eps
 eps_coeff = 1e-4
 # Set the optimality tolerance of the linear programing solver
-tol_lp = 1e-4
+tolerance = 1e-4
 
 # Number of algorithms
 num_algo = 3
@@ -68,11 +68,9 @@ for s in range(1, s_max+1):
         # Start pursuit algorithm.
         for i in range(num_algo):
             greedy_algo = GreedyAlgorithm(pursuit_algorithm=PursuitAlgorithm(i))
-            if PursuitAlgorithm(i) == PursuitAlgorithm.omp:
-                x_pursuit = greedy_algo(A, b, s)
-            else:
-                x_pursuit = greedy_algo(A, b, tol_lp)
-                x_pursuit[np.abs(x_pursuit) < eps_coeff] = 0
+            x_pursuit = greedy_algo(A_normalized, b, tolerance)
+            x_pursuit[np.abs(x_pursuit) < eps_coeff] = 0
+
             # Compute the relative L2 error
             L2_error[s - 1, experiment, i] = np.min([np.linalg.norm(x_pursuit - x) ** 2 / np.linalg.norm(x) ** 2, 1])
 
