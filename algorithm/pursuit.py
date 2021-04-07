@@ -1,9 +1,28 @@
 import numpy as np
 from scipy.optimize import linprog
+from enum import Enum
+
+class PursuitAlgorithm(Enum):
+    omp = 0
+    thresholding = 1
+    basis_pursuit_lp = 2
 
 class GreedyAlgorithm:
-    def __init__(self, show_calc=False):
+    def __init__(self, show_calc=False, pursuit_algorithm=PursuitAlgorithm.omp):
         self.show_calc = show_calc  # show intermediate calculation process
+        self.pursuit_algorithm = pursuit_algorithm
+
+    def __call__(self, A, b, t):
+        if self.pursuit_algorithm == PursuitAlgorithm.omp:
+            x = self.omp(A, b, t)
+
+        elif self.pursuit_algorithm == PursuitAlgorithm.thresholding:
+            x = self.thresholding(A, b, t)
+
+        elif self.pursuit_algorithm == PursuitAlgorithm.basis_pursuit_lp:
+            x = self.basis_pursuit_lp(A, b, t)
+
+        return x
 
     def omp(self, A, b, k):
         """
