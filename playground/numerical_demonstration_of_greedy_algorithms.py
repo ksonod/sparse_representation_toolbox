@@ -19,12 +19,12 @@ A_normalized = A / np.linalg.norm(A, axis=0)  # normalization
 min_coeff_val = 1  # minimum value of a random true vector
 max_coeff_val = 2  # maximum value of a random true vector
 
-num_iter = 100  # Number of iterations
+num_iter = 200  # Number of iterations
 s_max = 10  # Maximum number of non-zero entries in the solution vector
 eps_coeff = 1e-4  # If the entries in the estimated vector are smaller than eps_coeff, we will neglect those entries.
 tolerance = 1e-4  # Tolerance for convergence
 num_algo = 5  # Number of algorithms
-base_seed = 0  # Random seed
+base_seed = 1  # Random seed
 
 # getting the name of algorithms
 algo_name_list = []
@@ -56,10 +56,16 @@ for s in range(1, s_max+1):
         # signal b
         b = np.matmul(A_normalized, x)
 
+        dat = {
+            "A": A_normalized,
+            "b": b,
+            "tol": tolerance
+        }
+
         # Pursuit algorithm.
         for i in range(num_algo):
             greedy_algo = PursuitAlgorithm(pursuit_algorithm=PursuitAlgorithmType(i))
-            x_pursuit = greedy_algo(A_normalized, b, tolerance)
+            x_pursuit = greedy_algo(dat)
             x_pursuit[np.abs(x_pursuit) < eps_coeff] = 0
 
             # Relative L2 error

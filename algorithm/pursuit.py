@@ -14,31 +14,31 @@ class PursuitAlgorithm:
         self.show_calc = show_calc  # show intermediate calculation process
         self.pursuit_algorithm = pursuit_algorithm
 
-    def __call__(self, A, b, t):
+    def __call__(self, dat):
         if self.pursuit_algorithm == PursuitAlgorithmType.omp:
-            x = self.omp(A, b, t)
+            x = self.omp(dat)
 
         elif self.pursuit_algorithm == PursuitAlgorithmType.thresholding:
-            x = self.thresholding(A, b, t)
+            x = self.thresholding(dat)
 
         elif self.pursuit_algorithm == PursuitAlgorithmType.basis_pursuit_lp:
-            x = self.basis_pursuit_lp(A, b, t)
+            x = self.basis_pursuit_lp(dat)
 
         elif self.pursuit_algorithm == PursuitAlgorithmType.ls_omp:
-            x = self.ls_omp(A, b, t)
+            x = self.ls_omp(dat)
 
         elif self.pursuit_algorithm == PursuitAlgorithmType.mp:
-            x = self.mp(A, b, t)
+            x = self.mp(dat)
 
         return x
 
-    def omp(self, A, b, k):
+    def omp(self, dat):
         """
         Solving the P0 problem via OMP. Concretely,
         min_x ||b - Ax||_2^2 s.t. ||x||_0 <= k,
         where k is integer,
         or
-        min_x ||x||_0 s.t. ||y - Ax||_2^2 <= tol,
+        min_x ||x||_0 s.t. ||b - Ax||_2^2 <= tol,
         where tol is small non-integer.
 
 
@@ -49,12 +49,22 @@ class PursuitAlgorithm:
         See also scikit-learn: https://scikit-learn.org/stable/modules/linear_model.html#omp
         """
         # Initialization
+        A = dat["A"]
+        b = dat["b"]
+        num_support_exist = False
+
+        if "tol" in dat.keys():
+            tol = dat["tol"]
+        elif "num_support" in dat.keys():
+            num_support_exist = True
+            k = dat["num_support"]
+
         x = np.zeros((A.shape[1], 1))
         r = np.copy(b)
         column_idx = []
 
         # k is the number of non-zero coefficients
-        if isinstance(k, int):
+        if num_support_exist:
             for i in range(k):
                 idx = np.argmax(np.abs(np.matmul(A.T, r)))  # find a column with the maximum inner product.
                 column_idx.append(idx)
@@ -67,9 +77,9 @@ class PursuitAlgorithm:
                     print("Residual:\n{}".format(r))
                     print("L2 norm of r_k = {}\n".format(np.linalg.norm(r)))
 
-        # k is error tolerance
+        # Tolerance is used.
         else:
-            while np.dot(r.T, r) > k:
+            while np.dot(r.T, r) > tol:
                 idx = np.argmax(np.abs(np.matmul(A.T, r)))  # find a column with the maximum inner product.
                 column_idx.append(idx)
                 column_idx.sort()
@@ -79,7 +89,7 @@ class PursuitAlgorithm:
         x[column_idx] = np.linalg.pinv(As) @ b
         return x
 
-    def basis_pursuit_lp(self, A, b, tol):
+    def basis_pursuit_lp(self, dat):
         """
         Solving Basis Pursuit via linear programing
         min_x || x ||_1 s.t. b = Ax
@@ -88,6 +98,11 @@ class PursuitAlgorithm:
         b: input vector. numpy array
         tol: tolerance. small positive number
         """
+
+        # Initialization
+        A = dat["A"]
+        b = dat["b"]
+        tol = dat["tol"]
 
         # Set the options to be used by the linprog solver
         opt = {"tol": tol, "disp": False}
@@ -116,40 +131,44 @@ class PursuitAlgorithm:
         x = uv[:, 0] - uv[:, 1]
         return x.reshape(-1, 1)
 
-    def thresholding(self, A, b, thr):
+    def thresholding(self, dat):
         """
         Threshodling algorithm.
         """
-        column_idx = np.argsort(-np.abs(np.matmul(A.T, b)), axis=0).flatten()  # sort in descending order.
+        # Initialization
+        A = dat["A"]
+        b = dat["b"]
+        tol = dat["tol"]
+        r = np.copy(b)  # residual
+        supp = []  # support
 
+        column_idx = np.argsort(-np.abs(np.matmul(A.T, b)).flatten())  # sort in descending order.
+        column_idx = column_idx.tolist()  # convert numpy array into list.
         n, m = A.shape
 
-        # initialization
-        x = np.zeros((m, 1))
-        r = np.copy(b)
-        k = 1
-
-        while np.dot(r.T, r) > thr:
-            As = A[:, column_idx[:k]].reshape(n, -1)
-            xk = np.matmul(np.linalg.pinv(As), b)
-            r = b - np.matmul(As, xk)
-            k = k + 1
-
-        x[column_idx[:k-1]] = xk
-
+        while np.dot(r.T, r) > tol:
+            supp.append(column_idx[len(supp)])
+            x = np.zeros((m, 1))
+            x[supp] = np.linalg.pinv(A[:, supp].reshape(n, -1)) @ b
+            r = b - A[:, supp].reshape(n, -1) @ x[supp].reshape(-1, 1)
         return x
 
-    def ls_omp(self, A, b, tol):
+    def ls_omp(self, dat):
         """
         Least-square orthogonal matching pursuit
         """
 
+        # Initialization
+        A = dat["A"]
         m = A.shape[1]  # number of columns
-
-        # initialization
+        b = dat["b"]
+        tol = dat["tol"]
         x = np.zeros((m, 1))
         r = np.copy(b)
         column_idx = []
+
+
+        # initialization
 
         while np.dot(r.T, r) > tol:
             residual_inner_prod = np.zeros((m, 1))  # initialization
@@ -168,10 +187,16 @@ class PursuitAlgorithm:
 
         return x
 
-    def mp(self, A, b, tol):
-        n, m = A.shape
+    def mp(self, dat):
+        """
+        Matching pursuit (mp) algorithm.
+        """
 
         # initialization
+        A = dat["A"]
+        n, m = A.shape
+        b = dat["b"]
+        tol = dat["tol"]
         x = np.zeros((m, 1))
         r = np.copy(b)
 
