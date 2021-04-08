@@ -7,6 +7,7 @@ class PursuitAlgorithmType(Enum):
     thresholding = 1  # thresholding
     basis_pursuit_lp = 2  # basis pursuit with linear programming
     ls_omp = 3  # least-square orthogonal matching pursuit
+    mp = 4  # matching pursuit
 
 class PursuitAlgorithm:
     def __init__(self, show_calc=False, pursuit_algorithm=PursuitAlgorithmType.omp):
@@ -25,6 +26,9 @@ class PursuitAlgorithm:
 
         elif self.pursuit_algorithm == PursuitAlgorithmType.ls_omp:
             x = self.ls_omp(A, b, t)
+
+        elif self.pursuit_algorithm == PursuitAlgorithmType.mp:
+            x = self.mp(A, b, t)
 
         return x
 
@@ -118,13 +122,15 @@ class PursuitAlgorithm:
         """
         column_idx = np.argsort(-np.abs(np.matmul(A.T, b)), axis=0).flatten()  # sort in descending order.
 
+        n, m = A.shape
+
         # initialization
-        x = np.zeros((A.shape[1], 1))
+        x = np.zeros((m, 1))
         r = np.copy(b)
         k = 1
 
         while np.dot(r.T, r) > thr:
-            As = A[:, column_idx[:k]]
+            As = A[:, column_idx[:k]].reshape(n, -1)
             xk = np.matmul(np.linalg.pinv(As), b)
             r = b - np.matmul(As, xk)
             k = k + 1
@@ -160,4 +166,19 @@ class PursuitAlgorithm:
 
         x[column_idx] = np.linalg.pinv(A[:, column_idx]) @ b
 
+        return x
+
+    def mp(self, A, b, tol):
+        n, m = A.shape
+
+        # initialization
+        x = np.zeros((m, 1))
+        r = np.copy(b)
+
+        while np.dot(r.T, r) > tol:
+            idx = np.argmax(np.abs(np.matmul(A.T, r)))
+            x[idx] = x[idx] + A[:, idx].T @ r
+
+            As = A[:, idx].reshape(n, -1)
+            r = r - As @ As.T @ r
         return x

@@ -19,11 +19,11 @@ A_normalized = A / np.linalg.norm(A, axis=0)  # normalization
 min_coeff_val = 1  # minimum value of a random true vector
 max_coeff_val = 2  # maximum value of a random true vector
 
-num_iter = 200  # Number of iterations
+num_iter = 100  # Number of iterations
 s_max = 10  # Maximum number of non-zero entries in the solution vector
 eps_coeff = 1e-4  # If the entries in the estimated vector are smaller than eps_coeff, we will neglect those entries.
 tolerance = 1e-4  # Tolerance for convergence
-num_algo = 4  # Number of algorithms
+num_algo = 5  # Number of algorithms
 base_seed = 0  # Random seed
 
 # getting the name of algorithms
@@ -49,7 +49,7 @@ for s in range(1, s_max+1):
         # Random true_supp vector. This determines which indices give non-zero entries in x
         true_supp = np.random.permutation(m)[:s]
 
-        # random non-zero entries
+        # random non-zero entries [-max_coeff_val, -min_coeff_val]OR[min_coeff_val, max_coeff_val]
         rand_sign = (np.random.rand(s).reshape(-1, 1) > 0.5) * 2 - 1
         x[true_supp] = rand_sign * ((max_coeff_val - min_coeff_val) * np.random.rand(s).reshape(-1, 1) + min_coeff_val)
 
@@ -62,13 +62,13 @@ for s in range(1, s_max+1):
             x_pursuit = greedy_algo(A_normalized, b, tolerance)
             x_pursuit[np.abs(x_pursuit) < eps_coeff] = 0
 
-            # Compute the relative L2 error
+            # Relative L2 error
             L2_error[s - 1, experiment, i] = np.min([np.linalg.norm(x_pursuit - x) ** 2 / np.linalg.norm(x) ** 2, 1])
 
-            # Get the indices of the estimated support
+            # Indices of the estimated support
             estimated_supp = np.nonzero(np.abs(x_pursuit) > eps_coeff)[0]
 
-            # Compute the support recovery error
+            # Support recovery error
             # (max{|S_pred|, |S_correct|} - |S_pred cap S_correct|) / max{|S_correct|, |S_pred|}
             support_error[s-1, experiment, i] = 1 - len(set(true_supp).intersection(set(estimated_supp))) / np.max([len(true_supp), len(estimated_supp)])
 
@@ -81,6 +81,7 @@ plt.plot(np.arange(s_max) + 1, np.mean(L2_error[:s_max, :, 0], axis=1), color='r
 plt.plot(np.arange(s_max) + 1, np.mean(L2_error[:s_max, :, 1], axis=1), color='magenta', linestyle='-', marker='o')
 plt.plot(np.arange(s_max) + 1, np.mean(L2_error[:s_max, :, 2], axis=1), color='green', linestyle='-', marker='o')
 plt.plot(np.arange(s_max) + 1, np.mean(L2_error[:s_max, :, 3], axis=1), color='blue', linestyle='-', marker='o')
+plt.plot(np.arange(s_max) + 1, np.mean(L2_error[:s_max, :, 4], axis=1), color='lightgreen', linestyle='-', marker='o')
 plt.xlabel('Cardinality of the true solution')
 plt.ylabel('Average and Relative L2-Error')
 plt.xlim([0, s_max])
@@ -93,6 +94,7 @@ plt.plot(np.arange(s_max) + 1, np.mean(support_error[:s_max, :, 0], axis=1), col
 plt.plot(np.arange(s_max) + 1, np.mean(support_error[:s_max, :, 1], axis=1), color='magenta', linestyle='-', marker='o')
 plt.plot(np.arange(s_max) + 1, np.mean(support_error[:s_max, :, 2], axis=1), color='green', linestyle='-', marker='o')
 plt.plot(np.arange(s_max) + 1, np.mean(support_error[:s_max, :, 3], axis=1), color='blue', linestyle='-', marker='o')
+plt.plot(np.arange(s_max) + 1, np.mean(support_error[:s_max, :, 4], axis=1), color='lightgreen', linestyle='-', marker='o')
 plt.xlabel('Cardinality of the true solution')
 plt.ylabel('Probability of Error in Support')
 plt.xlim([0, s_max])
