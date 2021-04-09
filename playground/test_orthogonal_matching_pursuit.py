@@ -2,7 +2,7 @@
 # Michael Elad, Sparse and Redundant Representations, Chapter 3, page 36-37, 2010
 
 import numpy as np
-from algorithm.pursuit import GreedyAlgorithm
+from algorithm.pursuit import PursuitAlgorithmType, PursuitAlgorithm
 from sklearn.linear_model import OrthogonalMatchingPursuit
 
 # sample matrices A and b
@@ -11,8 +11,17 @@ A = np.array([[0.1817, 0.5394, -0.1197,  0.6404],
              [-0.7634, -0.8181, 0.9883, 0.7018]])
 b = np.array([[1.1862], [-0.1158], [-0.1093]])
 
-greedy_algo = GreedyAlgorithm(show_calc=True)
-x = greedy_algo.omp(A, b, 2)
+# input data
+dat = {
+    "A": A,
+    "b": b,
+    "num_support": 2
+}
+
+greedy_algo = PursuitAlgorithm(show_calc=True, pursuit_algorithm=PursuitAlgorithmType.omp)
+x = greedy_algo.omp(dat)
+
+
 """
 Below are expected output
 Residual rk

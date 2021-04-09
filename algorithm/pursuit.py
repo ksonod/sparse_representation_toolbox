@@ -8,6 +8,7 @@ class PursuitAlgorithmType(Enum):
     basis_pursuit_lp = 2  # basis pursuit with linear programming
     ls_omp = 3  # least-square orthogonal matching pursuit
     mp = 4  # matching pursuit
+    irls = 5  # iterative-reweighted-least-squares (IRLS)
 
 class PursuitAlgorithm:
     def __init__(self, show_calc=False, pursuit_algorithm=PursuitAlgorithmType.omp):
@@ -29,6 +30,9 @@ class PursuitAlgorithm:
 
         elif self.pursuit_algorithm == PursuitAlgorithmType.mp:
             x = self.mp(dat)
+
+        elif self.pursuit_algorithm == PursuitAlgorithmType.irls:
+            x = self.irls(dat)
 
         return x
 
@@ -206,4 +210,37 @@ class PursuitAlgorithm:
 
             As = A[:, idx].reshape(n, -1)
             r = r - As @ As.T @ r
+        return x
+
+    def irls(self, dat):
+        """
+        Iterative-reweighted-least-squares (IRLS) is a relaxation method, where l0 is relaxed to lp and lp is expressed
+        as a weighted l2-norm.
+        (M_k):  min_x ||X_(k-1)^+ x||_2^2 s.t. b = Ax
+        """
+
+        # initialization
+        A = dat["A"]
+        n, m = A.shape
+        b = dat["b"]
+        tol = dat["tol"]
+        p = dat["p"]
+        x = np.ones((m, 1))
+        X = np.eye(m)
+        x_prev = np.zeros_like(x)
+        diff = 1000000  # arbitrary large number
+
+        while diff > tol:
+            X2 = X @ X
+
+            # M. Elad, "Sparse and Redundant Representations:
+            # From Theory to Applications in Signal and Image Processing,"
+            # Springer, p49, Eq. (3.34) (2010)
+            x = X2 @ A.T @ np.linalg.pinv(A @ X2 @ A.T) @ b
+
+            np.fill_diagonal(X, np.abs(x)**(1-0.5*p))
+
+            diff = np.linalg.norm(x-x_prev)
+            x_prev = x
+
         return x

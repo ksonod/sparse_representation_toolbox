@@ -1,7 +1,7 @@
 """
 M. Elad, "Sparse and Redundant Representations: From Theory to Applications in Signal and Image Processing,"
  Springer, p47, (2010)
- Figs. 3.5 and 3.6
+ Figs. 3.5, 3.6, 3.8, and 3.9
 """
 
 import numpy as np
@@ -23,13 +23,17 @@ num_iter = 200  # Number of iterations
 s_max = 10  # Maximum number of non-zero entries in the solution vector
 eps_coeff = 1e-4  # If the entries in the estimated vector are smaller than eps_coeff, we will neglect those entries.
 tolerance = 1e-4  # Tolerance for convergence
-num_algo = 5  # Number of algorithms
+num_algo = 6  # Number of algorithms
 base_seed = 1  # Random seed
+p = 0.5  # irls Lp norm.
 
 # getting the name of algorithms
 algo_name_list = []
 for i in range(num_algo):
     algo_name_list.append(PursuitAlgorithmType(i).name)
+
+# color list corresponding to each algorithm
+color_list = ["r-o", "m-o", "g-o", "b-o", "c-o", "k-o"]
 
 # Initialization
 L2_error = np.zeros((s_max, num_iter, num_algo))
@@ -59,7 +63,8 @@ for s in range(1, s_max+1):
         dat = {
             "A": A_normalized,
             "b": b,
-            "tol": tolerance
+            "tol": tolerance,
+            "p": p
         }
 
         # Pursuit algorithm.
@@ -80,14 +85,12 @@ for s in range(1, s_max+1):
 
 # Data visualization
 plt.rcParams.update({'font.size': 14})
+
 # Average relative L2 error vs cardinality
 plt.figure(figsize=(14, 5))
 plt.subplot(121)
-plt.plot(np.arange(s_max) + 1, np.mean(L2_error[:s_max, :, 0], axis=1), color='red', linestyle='-', marker='o')
-plt.plot(np.arange(s_max) + 1, np.mean(L2_error[:s_max, :, 1], axis=1), color='magenta', linestyle='-', marker='o')
-plt.plot(np.arange(s_max) + 1, np.mean(L2_error[:s_max, :, 2], axis=1), color='green', linestyle='-', marker='o')
-plt.plot(np.arange(s_max) + 1, np.mean(L2_error[:s_max, :, 3], axis=1), color='blue', linestyle='-', marker='o')
-plt.plot(np.arange(s_max) + 1, np.mean(L2_error[:s_max, :, 4], axis=1), color='lightgreen', linestyle='-', marker='o')
+for i in range(num_algo):
+    plt.plot(np.arange(s_max) + 1, np.mean(L2_error[:s_max, :, i], axis=1), color_list[i])
 plt.xlabel('Cardinality of the true solution')
 plt.ylabel('Average and Relative L2-Error')
 plt.xlim([0, s_max])
@@ -96,11 +99,8 @@ plt.legend(algo_name_list, loc='upper left')
 
 # Average support recovery score vs cardinality
 plt.subplot(122)
-plt.plot(np.arange(s_max) + 1, np.mean(support_error[:s_max, :, 0], axis=1), color='red', linestyle='-', marker='o')
-plt.plot(np.arange(s_max) + 1, np.mean(support_error[:s_max, :, 1], axis=1), color='magenta', linestyle='-', marker='o')
-plt.plot(np.arange(s_max) + 1, np.mean(support_error[:s_max, :, 2], axis=1), color='green', linestyle='-', marker='o')
-plt.plot(np.arange(s_max) + 1, np.mean(support_error[:s_max, :, 3], axis=1), color='blue', linestyle='-', marker='o')
-plt.plot(np.arange(s_max) + 1, np.mean(support_error[:s_max, :, 4], axis=1), color='lightgreen', linestyle='-', marker='o')
+for i in range(num_algo):
+    plt.plot(np.arange(s_max) + 1, np.mean(support_error[:s_max, :, i], axis=1), color_list[i])
 plt.xlabel('Cardinality of the true solution')
 plt.ylabel('Probability of Error in Support')
 plt.xlim([0, s_max])
