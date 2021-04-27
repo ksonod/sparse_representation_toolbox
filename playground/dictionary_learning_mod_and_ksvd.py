@@ -9,7 +9,6 @@ M. Elad, "Sparse and Redundant Representations: From Theory to Applications in S
 import numpy as np
 from algorithm.pursuit import PursuitAlgorithmType, PursuitAlgorithm
 import matplotlib.pyplot as plt
-from scipy.io import savemat, loadmat
 
 # parameters
 rand_seed = 5  # Random seed
@@ -44,10 +43,6 @@ Y = Y + np.random.normal(loc=0, scale=noise_sigma, size=Y.shape)  # Add noise
 A = np.copy(Y[:, :60])  # Initialization of dictionary with signal elements Y
 A = A / np.linalg.norm(A, axis=0)  # Normalization
 
-mat = loadmat("/Users/kotarosonoda/Downloads/Matlab-Package-Book/matlab.mat")
-A_true = mat["Dictionary"]
-X_true = mat["coefs"]
-Y = mat["data"]
 A = np.copy(Y[:, :60])  # Initialization of dictionary with signal elements Y
 A = A / np.linalg.norm(A, axis=0)  # Normalization
 
