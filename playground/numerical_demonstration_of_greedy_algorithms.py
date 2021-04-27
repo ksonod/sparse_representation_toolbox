@@ -9,12 +9,6 @@ from algorithm.pursuit import PursuitAlgorithmType, PursuitAlgorithm
 import matplotlib.pyplot as plt
 
 
-# Create a random matrix A of size (n x m): dictionary
-n = 30
-m = 50
-A = np.random.randn(n, m)
-A_normalized = A / np.linalg.norm(A, axis=0)  # normalization
-
 # [-max_coeff_val, -min_coeff_val]OR[min_coeff_val, max_coeff_val]
 min_coeff_val = 1  # minimum value of a random true vector
 max_coeff_val = 2  # maximum value of a random true vector
@@ -24,8 +18,17 @@ s_max = 10  # Maximum number of non-zero entries in the solution vector
 eps_coeff = 1e-4  # If the entries in the estimated vector are smaller than eps_coeff, we will neglect those entries.
 tolerance = 1e-4  # Tolerance for convergence
 num_algo = 6  # Number of algorithms
-base_seed = 1  # Random seed
+rand_seed = 1  # Random seed
 p = 0.5  # irls Lp norm.
+
+np.random.seed(rand_seed)  # Random seed
+
+# Create a random matrix A of size (n x m): dictionary
+n = 30
+m = 50
+A = np.random.randn(n, m)
+A_normalized = A / np.linalg.norm(A, axis=0)  # normalization
+
 
 # getting the name of algorithms
 algo_name_list = []
@@ -36,7 +39,7 @@ for i in range(num_algo):
 color_list = ["r-o", "m-o", "g-o", "b-o", "c-o", "k-o"]
 
 # Initialization
-L2_error = np.zeros((s_max, num_iter, num_algo))
+l2_error = np.zeros((s_max, num_iter, num_algo))
 support_error = np.zeros((s_max, num_iter, num_algo))
 
 
@@ -44,7 +47,7 @@ support_error = np.zeros((s_max, num_iter, num_algo))
 for s in range(1, s_max+1):
     print("Progress: {}/{}".format(s, s_max))  # Showing progress
 
-    np.random.seed(s + base_seed)  # Random seed
+    np.random.seed(s + rand_seed)  # Random seed
 
     # Start experiment
     for experiment in range(num_iter):
@@ -74,7 +77,7 @@ for s in range(1, s_max+1):
             x_pursuit[np.abs(x_pursuit) < eps_coeff] = 0
 
             # Relative L2 error
-            L2_error[s - 1, experiment, i] = np.min([np.linalg.norm(x_pursuit - x) ** 2 / np.linalg.norm(x) ** 2, 1])
+            l2_error[s - 1, experiment, i] = np.min([np.linalg.norm(x_pursuit - x) ** 2 / np.linalg.norm(x) ** 2, 1])
 
             # Indices of the estimated support
             estimated_supp = np.nonzero(np.abs(x_pursuit) > eps_coeff)[0]
@@ -90,7 +93,7 @@ plt.rcParams.update({'font.size': 14})
 plt.figure(figsize=(14, 5))
 plt.subplot(121)
 for i in range(num_algo):
-    plt.plot(np.arange(s_max) + 1, np.mean(L2_error[:s_max, :, i], axis=1), color_list[i])
+    plt.plot(np.arange(s_max) + 1, np.mean(l2_error[:s_max, :, i], axis=1), color_list[i])
 plt.xlabel('Cardinality of the true solution')
 plt.ylabel('Average and Relative L2-Error')
 plt.xlim([0, s_max])
